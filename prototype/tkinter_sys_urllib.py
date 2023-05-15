@@ -1,68 +1,75 @@
-import tkinter as tk
 import sys
 import urllib.request
+import tkinter as tk
+from tkinter import messagebox
 
-class WebBrowser:
-    def __init__(self, master):
-        self.master = master
-        self.master.geometry("800x600")
 
-        self.url_label = tk.Label(master, text="URL:")
-        self.url_label.pack(side=tk.LEFT)
+class Browser:
 
-        self.url_entry = tk.Entry(master, width=80)
-        self.url_entry.pack(side=tk.LEFT)
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Python Browser")
 
-        self.go_button = tk.Button(master, text="Go", command=self.load_page)
-        self.go_button.pack(side=tk.LEFT)
+        self.back_btn = tk.Button(self.root, text="<", command=self.back)
+        self.back_btn.pack(side="left")
 
-        self.back_button = tk.Button(master, text="<", command=self.back_page)
-        self.back_button.pack(side=tk.LEFT)
+        self.forward_btn = tk.Button(self.root, text=">", command=self.forward)
+        self.forward_btn.pack(side="left")
 
-        self.forward_button = tk.Button(master, text=">", command=self.forward_page)
-        self.forward_button.pack(side=tk.LEFT)
+        self.url_entry = tk.Entry(self.root, width=50)
+        self.url_entry.pack(side="left", padx=5)
 
-        self.quit_button = tk.Button(master, text="Quit", command=self.quit_browser)
-        self.quit_button.pack(side=tk.LEFT)
+        self.go_btn = tk.Button(self.root, text="Go", command=self.go)
+        self.go_btn.pack(side="left")
 
-        self.webview = tk.Text(master)
-        self.webview.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.webview = tk.Text(self.root, wrap="word")
+        self.webview.pack(side="top", fill="both", expand=True)
 
         self.history = []
-        self.current_page = 0
+        self.current = -1
 
-    def load_page(self):
+    def back(self):
+        if self.current > 0:
+            self.current -= 1
+            url = self.history[self.current]
+            self.url_entry.delete(0, tk.END)
+            self.url_entry.insert(0, url)
+            self.update_webview()
+
+    def forward(self):
+        if self.current < len(self.history) - 1:
+            self.current += 1
+            url = self.history[self.current]
+            self.url_entry.delete(0, tk.END)
+            self.url_entry.insert(0, url)
+            self.update_webview()
+
+    def go(self):
         url = self.url_entry.get()
-        try:
-            response = urllib.request.urlopen(url)
-            html = response.read().decode()
-            self.webview.delete(1.0, tk.END)
-            self.webview.insert(tk.END, html)
-            self.history.append(url)
-            self.current_page = len(self.history) - 1
-        except Exception as e:
-            self.webview.delete(1.0, tk.END)
-            self.webview.insert(tk.END, str(e))
+        if url:
+            try:
+                response = urllib.request.urlopen(url)
+                html = response.read().decode()
+                self.webview.delete("1.0", tk.END)
+                self.webview.insert("1.0", html)
+                if url != self.get_current_url():
+                    self.history = self.history[:self.current+1]
+                    self.history.append(url)
+                    self.current += 1
+            except:
+                messagebox.showerror("Error", "Invalid URL")
 
-    def back_page(self):
-        if self.current_page > 0:
-            self.current_page -= 1
-            url = self.history[self.current_page]
-            self.url_entry.delete(0, tk.END)
-            self.url_entry.insert(tk.END, url)
-            self.load_page()
+    def update_webview(self):
+        url = self.history[self.current]
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.insert(0, url)
+        self.go()
 
-    def forward_page(self):
-        if self.current_page < len(self.history) - 1:
-            self.current_page += 1
-            url = self.history[self.current_page]
-            self.url_entry.delete(0, tk.END)
-            self.url_entry.insert(tk.END, url)
-            self.load_page()
+    def get_current_url(self):
+        return self.history[self.current] if self.history else ""
 
-    def quit_browser(self):
-        sys.exit()
 
-root = tk.Tk()
-browser = WebBrowser(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    browser = Browser(root)
+    root.mainloop()
